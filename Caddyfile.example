@@ -1,0 +1,22 @@
+# Example Caddyfile for running mistral-relay-gateway as a sidecar in front of New API
+# (Replace api.example.com with your domain; use :80 behind Cloudflare Tunnel)
+
+api.example.com {
+	@relay_gw {
+		path /gw/* /v1/chat/completions /v1/chat/completions/ /v1/responses /v1/responses/
+	}
+	handle @relay_gw {
+		reverse_proxy mistral-relay-gateway:8790 {
+			flush_interval -1
+			transport http {
+				read_timeout 360s
+				write_timeout 360s
+			}
+		}
+	}
+
+	# Optional: expose Web Console under /gateway-ui (protected by ADMIN_TOKEN)
+	handle {
+		reverse_proxy new-api:3000
+	}
+}

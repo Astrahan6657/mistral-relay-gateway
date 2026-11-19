@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mistral-relay-gateway"
+version = "0.1.0"
+description = "Unofficial lightweight LLM API compatibility proxy for Mistral, New API, and coding agents (Codex/ZCode) with multi-account pool, built-in Web Console, and optional Tauri desktop tray shell."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Astrahan6657" },
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "httpx>=0.27.0",
+    "uvicorn[standard]>=0.32.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Astrahan6657/mistral-relay-gateway"
+Repository = "https://github.com/Astrahan6657/mistral-relay-gateway"
+Issues = "https://github.com/Astrahan6657/mistral-relay-gateway/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.0",
+]
+
+[project.scripts]
+mistral-relay-gateway = "mistral_relay_gateway.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mistral_relay_gateway"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]

@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+
+# Local secrets & runtime config
+.env
+config.json
+accounts.json
+*.local.json
+
+# Rust / Tauri
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+desktop/src-tauri/binaries/
+desktop/node_modules/
+*.spec
+
+# OS
+.DS_Store
+Thumbs.db

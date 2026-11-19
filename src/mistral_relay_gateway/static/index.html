@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mistral Relay Gateway · Multi-Account Console</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --panel-2: #f8fafc;
+      --border: #e5eaf3;
+      --border-strong: #d5deec;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #3b5bdb;
+      --accent-hover: #2f4cc4;
+      --link: #2563eb;
+      --green: #16a34a;
+      --green-bg: rgba(22, 163, 74, 0.12);
+      --amber: #d97706;
+      --amber-bg: rgba(217, 119, 6, 0.14);
+      --red: #dc2626;
+      --red-bg: rgba(220, 38, 38, 0.12);
+      --purple: #7c3aed;
+      --purple-bg: rgba(124, 58, 237, 0.12);
+      --cyan: #0891b2;
+      --cyan-bg: rgba(8, 145, 178, 0.12);
+      --code-bg: #0f172a;
+      --code-text: #dbeafe;
+      --quota-card-bg: #ffffff;
+      --row-hover: #f8fbff;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", sans-serif;
+    }
+    [data-theme="dark"] {
+      --bg: #0b0f17;
+      --panel: #121826;
+      --panel-2: #182032;
+      --border: #253047;
+      --border-strong: #33415c;
+      --text: #e6edf7;
+      --muted: #8b9bb4;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --link: #60a5fa;
+      --green: #22c55e;
+      --green-bg: rgba(34, 197, 94, 0.16);
+      --amber: #f59e0b;
+      --amber-bg: rgba(245, 158, 11, 0.16);
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.16);
+      --purple: #a78bfa;
+      --purple-bg: rgba(167, 139, 250, 0.16);
+      --cyan: #22d3ee;
+      --cyan-bg: rgba(34, 211, 238, 0.14);
+      --code-bg: #080c13;
+      --code-text: #c9d7ee;
+      --quota-card-bg: #151d2e;
+      --row-hover: #172033;
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .app {
+      display: grid;
+      grid-template-columns: 224px 1fr;
+      min-height: 100vh;
+    }
+    .sidebar {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 6px;
+    }
+    .logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #3b5bdb, #06b6d4);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .brand-title { font-weight: 700; font-size: 15px; }
+    .brand-sub { font-size: 11px; color: var(--muted); }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--green-bg);
+      border: 1px solid rgba(22, 163, 74, 0.28);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+    }
+    .status-pill.err {
+      background: var(--red-bg);
+      border-color: rgba(220, 38, 38, 0.32);
+      color: var(--red);
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 6px currentColor;
+    }
+    nav { display: flex; flex-direction: column; gap: 4px; }
+    .nav-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      text-align: left;
+      padding: 9px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all .15s;
+    }
+    .nav-btn:hover { background: var(--panel-2); color: var(--text); }
+    .nav-btn.active {
+      background: rgba(59, 91, 219, 0.1);
+      border-color: rgba(59, 91, 219, 0.28);
+      color: var(--accent);
+    }
+    .nav-count {
+      font-size: 11px;
+      font-family: var(--mono);
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--panel-2);
+      color: var(--muted);
+    }
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .main {
+      padding: 22px 26px;
+      overflow-x: hidden;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    h1 { margin: 0; font-size: 20px; font-weight: 700; }
+    .subtitle { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .15s;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn.secondary {
+      background: var(--panel);
+      border-color: var(--border-strong);
+      color: var(--text);
+    }
+    .btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.sm { padding: 5px 10px; font-size: 12px; }
+    .btn.danger { background: var(--red); }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .kpi-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+    .kpi-value { font-size: 22px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ---- Antigravity-Tools Style Multi-Account Quota Table ---- */
+    .acct-table-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+    .acct-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 920px;
+    }
+    .acct-table thead th {
+      text-align: left;
+      padding: 11px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .acct-row {
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+    }
+    .acct-row:last-child { border-bottom: none; }
+    .acct-row:hover { background: var(--row-hover); }
+    .acct-row.disabled { opacity: 0.56; }
+    .acct-row td {
+      padding: 14px;
+      vertical-align: middle;
+    }
+    .acct-name {
+      color: var(--link);
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 7px;
+      word-break: break-all;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 5px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .pill.plan-pro { background: #2563eb; color: #fff; }
+    .pill.plan-ent { background: #7c3aed; color: #fff; }
+    .pill.plan-payg { background: #0891b2; color: #fff; }
+    .pill.plan-api { background: rgba(37, 99, 235, 0.12); color: var(--link); }
+    .pill.prio { background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); }
+    .pill.pin { background: rgba(245, 158, 11, 0.16); color: var(--amber); }
+    .pill.tag-0 { background: rgba(124, 58, 237, 0.12); color: var(--purple); }
+    .pill.tag-1 { background: rgba(217, 119, 6, 0.14); color: var(--amber); }
+    .pill.tag-2 { background: rgba(22, 163, 74, 0.13); color: var(--green); }
+    .pill.tag-3 { background: rgba(8, 145, 178, 0.13); color: var(--cyan); }
+    .pill.status-err { background: var(--red-bg); color: var(--red); }
+
+    /* Quota progress cards */
+    .quota-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(210px, 1fr));
+      gap: 8px;
+    }
+    .quota-card {
+      position: relative;
+      background: var(--quota-card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px 9px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .quota-card.wide {
+      grid-column: 1 / -1;
+      border-color: rgba(59, 91, 219, 0.32);
+    }
+    .q-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+    .q-icon { font-size: 13px; flex-shrink: 0; }
+    .q-label { font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; }
+    .q-sub {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+    .q-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    .q-reset { font-size: 11px; color: var(--green); white-space: nowrap; }
+    .q-reset.warn { color: var(--amber); }
+    .q-reset.err { color: var(--red); }
+    .q-pct { font-weight: 800; color: var(--green); min-width: 36px; text-align: right; }
+    .q-pct.warn { color: var(--amber); }
+    .q-pct.err { color: var(--red); }
+    .q-bar-track {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 3px;
+      background: var(--border);
+    }
+    .q-bar-fill {
+      height: 100%;
+      background: var(--green);
+      transition: width .25s ease;
+    }
+    .q-bar-fill.warn { background: var(--amber); }
+    .q-bar-fill.err { background: var(--red); }
+
+    .time-col {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .time-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 30px);
+      gap: 4px;
+      justify-content: end;
+    }
+    .icon-btn {
+      width: 30px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      transition: all .12s;
+    }
+    .icon-btn:hover {
+      background: var(--panel-2);
+      border-color: var(--border);
+      color: var(--accent);
+    }
+    .icon-btn.active { color: var(--amber); background: var(--amber-bg); }
+    .icon-btn.danger:hover { color: var(--red); background: var(--red-bg); border-color: rgba(220,38,38,.25); }
+
+    /* Forms, tables, code */
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .code-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--code-text);
+      overflow-x: auto;
+      white-space: pre;
+      margin: 0;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 14px;
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .field input, .field select, .field textarea {
+      background: var(--panel-2);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: var(--sans);
+    }
+    .field textarea { font-family: var(--mono); min-height: 76px; resize: vertical; }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      gap: 12px;
+    }
+    .toggle-row strong { display: block; font-size: 13px; }
+    .toggle-row small { color: var(--muted); font-size: 11px; }
+    .toggle-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+    table.std-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    table.std-table th, table.std-table td {
+      text-align: left;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    table.std-table th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+    .badge.ok { background: var(--green-bg); color: var(--green); }
+    .badge.warn { background: var(--amber-bg); color: var(--amber); }
+    .badge.err { background: var(--red-bg); color: var(--red); }
+    .badge.info { background: rgba(59, 91, 219, 0.12); color: var(--accent); }
+    .badge.cyan { background: var(--cyan-bg); color: var(--cyan); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: var(--panel);
+      border: 1px solid var(--accent);
+      color: var(--text);
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+      display: none;
+      z-index: 200;
+    }
+    .auth-bar {
+      display: none;
+      margin-bottom: 16px;
+      background: var(--amber-bg);
+      border: 1px solid rgba(217, 119, 6, 0.4);
+      border-radius: 10px;
+      padding: 12px 14px;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .auth-bar input {
+      background: var(--panel);
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      min-width: 240px;
+    }
+    .chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.48);
+      display: none;
+      place-items: center;
+      z-index: 150;
+      padding: 16px;
+    }
+    .modal-backdrop.open { display: grid; }
+    .modal {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 20px 22px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+    }
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .modal-head h3 { margin: 0; font-size: 16px; }
+    .modal-foot {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .sub-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+    .sub-tab {
+      padding: 5px 12px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .sub-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .banner-tip {
+      margin-bottom: 14px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(59, 91, 219, 0.08);
+      border: 1px solid rgba(59, 91, 219, 0.22);
+      font-size: 12.5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">MR</div>
+      <div>
+        <div class="brand-title">Mistral Relay</div>
+        <div class="brand-sub" id="version-label">Gateway Console</div>
+      </div>
+    </div>
+
+    <div class="status-pill" id="status-pill">
+      <span class="dot"></span>
+      <span id="status-text">Connecting...</span>
+    </div>
+
+    <nav>
+      <button class="nav-btn active" data-tab="accounts">
+        <span>多账号与额度</span>
+        <span class="nav-count" id="nav-acct-count">0</span>
+      </button>
+      <button class="nav-btn" data-tab="overview"><span>概览与接入</span></button>
+      <button class="nav-btn" data-tab="settings"><span>代理规则配置</span></button>
+      <button class="nav-btn" data-tab="logs">
+        <span>实时请求监控</span>
+        <span class="nav-count" id="nav-log-count">0</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn secondary sm" style="width:100%; justify-content:center;" onclick="toggleTheme()" id="theme-btn">切换深色主题</button>
+      <div id="mode-summary" style="color:var(--accent); word-break:break-all;">-</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="auth-bar" id="auth-bar">
+      <span>当前服务启用了 <code>ADMIN_TOKEN</code>，请输入管理令牌以解锁控制台：</span>
+      <input id="admin-token-input" type="password" placeholder="X-Admin-Token" />
+      <button class="btn sm" onclick="saveAdminToken()">验证</button>
+    </div>
+
+    <!-- MULTI-ACCOUNT & VISUAL QUOTA DASHBOARD -->
+    <section class="tab-pane active" id="tab-accounts">
+      <div class="header">
+        <div>
+          <h1>多账号池与模型额度</h1>
+          <div class="subtitle">支持多 Mistral API Key 优先级轮询、402/429 自动故障转移，以及预算/月限额/实时速率配额可视化</div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn secondary" onclick="refreshAllAccounts()">↻ 全部刷新额度</button>
+          <button class="btn" onclick="openAddModal()">+ 添加账号</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="card">
+          <div class="kpi-label">号池总账号</div>
+          <div class="kpi-value" id="acct-kpi-total">0</div>
+          <div class="kpi-sub" id="acct-kpi-enabled">已启用 0</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">健康可用</div>
+          <div class="kpi-value" style="color:var(--green);" id="acct-kpi-healthy">0</div>
+          <div class="kpi-sub">优先级轮询调度</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">冷却/受限</div>
+          <div class="kpi-value" style="color:var(--amber);" id="acct-kpi-cooling">0</div>
+          <div class="kpi-sub">遇 402/429 自动切号</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">本地代理端点</div>
+          <div class="kpi-value" style="font-size:15px; font-family:var(--mono); margin-top:8px;" id="acct-kpi-url">-</div>
+          <div class="kpi-sub"><a href="#" onclick="copyText(location.origin + '/v1'); return false;" style="color:var(--link);">点击复制 /v1 地址</a></div>
+        </div>
+      </div>
+
+      <div class="banner-tip" id="pool-routing-tip" style="display:none;">
+        <span>💡 当前已开启「透传客户端 Authorization」：如果客户端填了任意占位 Key，想统一走下方号池轮询，请关闭透传。</span>
+        <button class="btn sm" onclick="disablePassthroughForPool()">一键切为号池调度模式</button>
+      </div>
+
+      <div class="acct-table-wrap">
+        <table class="acct-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">账号 / 套餐 / 支持模型</th>
+              <th style="width:48%;">模型与订阅剩余额度</th>
+              <th style="width:11%;">最近刷新</th>
+              <th style="width:11%; text-align:right;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="accounts-tbody">
+            <tr>
+              <td colspan="4" style="text-align:center; padding:42px 16px; color:var(--muted);">
+                暂无接入账号。点击右上角 <strong>+ 添加账号</strong> 填入一个或多个 Mistral API Key，系统会自动识别邮箱、套餐与剩余额度。
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- OVERVIEW -->
+    <section class="tab-pane" id="tab-overview">
+      <div class="header">
+        <div>
+          <h1>运行概览与客户端接入</h1>
+          <div class="subtitle">Mistral OpenAPI 3.1.0 兼容层 · 截图裁剪 · ThinkChunk 拍平 · Responses 协议适配</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn secondary" onclick="copyText(location.origin + '/v1')">复制本地端点</button>
+          <button class="btn" onclick="refreshAll()">刷新状态</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="card">
+          <div class="kpi-label">总请求数</div>
+          <div class="kpi-value" id="kpi-reqs">0</div>
+          <div class="kpi-sub" id="kpi-uptime">运行时间 -</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">当前在途并发</div>
+          <div class="kpi-value" id="kpi-inflight">0</div>
+          <div class="kpi-sub" id="kpi-rejected">限流拒绝 0</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">已裁剪历史截图</div>
+          <div class="kpi-value" id="kpi-imgs">0</div>
+          <div class="kpi-sub">防多图长会话超时</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">已清洗非法字段</div>
+          <div class="kpi-value" id="kpi-fields">0</div>
+          <div class="kpi-sub">防 422 extra_forbidden</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">ThinkChunk 拍平</div>
+          <div class="kpi-value" id="kpi-norm">0</div>
+          <div class="kpi-sub">数组 content 归一化</div>
+        </div>
+        <div class="card">
+          <div class="kpi-label">异常/错误数</div>
+          <div class="kpi-value" id="kpi-errs">0</div>
+          <div class="kpi-sub" id="kpi-resp-mode">Responses: -</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-title">
+            <span>Codex CLI / OpenAI 客户端快速接入</span>
+            <button class="btn secondary sm" onclick="copyElement('snippet-codex')">复制</button>
+          </div>
+          <pre class="code-box" id="snippet-codex"></pre>
+        </div>
+        <div class="card">
+          <div class="section-title">
+            <span>服务端 Caddy Sidecar 接入示例</span>
+            <button class="btn secondary sm" onclick="copyElement('snippet-caddy')">复制</button>
+          </div>
+          <pre class="code-box" id="snippet-caddy"></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span>模型级并发限制实时状态</span></div>
+        <div id="concurrency-box" style="color:var(--muted); font-size:13px;">未配置模型级并发上限（全部放行）</div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="tab-pane" id="tab-settings">
+      <div class="header">
+        <div>
+          <h1>代理规则与热更新配置</h1>
+          <div class="subtitle">修改后立即热生效；如启动时指定了 <code>CONFIG_PATH</code>，会同步持久化到磁盘</div>
+        </div>
+        <button class="btn" onclick="saveConfig()">保存并热生效</button>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-title"><span>上游连接与鉴权</span></div>
+        <div class="form-grid">
+          <div class="field">
+            <label>运行模式 (upstream_mode)</label>
+            <select id="cfg-upstream-mode" onchange="onModePreset()">
+              <option value="direct_mistral">direct_mistral（直连 Mistral 官方 API）</option>
+              <option value="new_api">new_api（挂在 New API / One API 前方）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>默认上游地址 (upstream_base)</label>
+            <input id="cfg-upstream-base" placeholder="https://api.mistral.ai" />
+          </div>
+          <div class="field">
+            <label>兜底单账号 Key（可选，优先使用「多账号池」）</label>
+            <input id="cfg-upstream-key" type="password" placeholder="留空表示仅使用多账号池或客户端透传 Key" />
+          </div>
+          <div class="field">
+            <label>本地 Gateway Key（关闭透传时的客户端访问密钥）</label>
+            <input id="cfg-gateway-key" type="password" placeholder="可选，留空表示本地免密接入" />
+          </div>
+        </div>
+        <div style="margin-top:12px;" class="toggle-row">
+          <div>
+            <strong>透传客户端 Authorization (passthrough_auth)</strong>
+            <small>关闭后，所有客户端请求统一由「多账号池」按优先级轮询与 402/429 自动故障转移转发</small>
+          </div>
+          <input id="cfg-passthrough" type="checkbox" />
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-title"><span>Mistral OpenAPI 3.1.0 兼容策略</span></div>
+        <div style="display:grid; gap:10px; margin-bottom:14px;">
+          <div class="toggle-row">
+            <div>
+              <strong>严格 OpenAPI 3.1.0 白名单清洗 (strict_mistral_whitelist)</strong>
+              <small>按官方 ChatCompletionRequest / Message / Tool 严格白名单过滤未知字段，同时保留 prompt_cache_key 与 function.strict</small>
+            </div>
+            <input id="cfg-strict" type="checkbox" />
+          </div>
+          <div class="toggle-row">
+            <div>
+              <strong>数组型 content / ThinkChunk 拍平 (normalize_content_arrays)</strong>
+              <small>将 Mistral / zai-glm-5-3 下发的结构化 thinking 块自动拍平为字符串 content + reasoning_content</small>
+            </div>
+            <input id="cfg-normalize" type="checkbox" />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label>Mistral Chat 端点 (mistral_chat_endpoint)</label>
+            <select id="cfg-mistral-chat-ep">
+              <option value="native">native（/v1/chat/completions + OpenAPI 3.1.0 严格白名单）</option>
+              <option value="openai_compat">openai_compat（/openai/v1/chat/completions，/models 与 /responses 仍走 /v1）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>/v1/responses 路由模式 (responses_mode)</label>
+            <select id="cfg-responses-mode">
+              <option value="auto">auto（直连 Mistral 走原生 /v1/responses；New API 走双向转换）</option>
+              <option value="native">native（强制透传上游原生 /v1/responses）</option>
+              <option value="convert">convert（强制转为 /v1/chat/completions 并反向转回 SSE）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>上游超时秒数 (upstream_timeout)</label>
+            <input id="cfg-timeout" type="number" min="5" max="1800" />
+          </div>
+          <div class="field">
+            <label>Mistral 保留截图张数 (keep_images_mistral)</label>
+            <input id="cfg-keep-m" type="number" min="0" max="50" />
+          </div>
+          <div class="field">
+            <label>Mistral 最大请求体 MB</label>
+            <input id="cfg-maxmb-m" type="number" step="0.5" min="0.5" max="100" />
+          </div>
+          <div class="field">
+            <label>非 Mistral 保留截图张数</label>
+            <input id="cfg-keep-o" type="number" min="0" max="100" />
+          </div>
+          <div class="field">
+            <label>非 Mistral 最大请求体 MB</label>
+            <input id="cfg-maxmb-o" type="number" step="0.5" min="0.5" max="100" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span>模型识别与并发限流</span></div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Mistral 精确模型名（逗号分隔，new_api 模式生效）</label>
+            <textarea id="cfg-m-models" placeholder="deepseek-v4-1-flash-1017, zai-glm-5-3"></textarea>
+          </div>
+          <div class="field">
+            <label>Mistral 模型前缀（逗号分隔，new_api 模式生效）</label>
+            <textarea id="cfg-m-prefixes"></textarea>
+          </div>
+          <div class="field">
+            <label>模型级并发上限（格式 model=cap，逗号分隔）</label>
+            <textarea id="cfg-limits" placeholder="例如: gemini-4-carbon-high=4, claude-opus-5-5-high=12"></textarea>
+          </div>
+          <div class="field">
+            <label>并发槽排队超时秒数</label>
+            <input id="cfg-wait" type="number" min="1" max="600" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOGS -->
+    <section class="tab-pane" id="tab-logs">
+      <div class="header">
+        <div>
+          <h1>实时请求监控</h1>
+          <div class="subtitle">内存中保留最近 250 条代理请求元数据（含命中账号、裁剪截图、清洗字段，不记录密钥与正文）</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <label style="font-size:12px; color:var(--muted); display:flex; gap:6px; align-items:center;">
+            <input type="checkbox" id="auto-refresh" checked /> 每 3 秒自动刷新
+          </label>
+          <button class="btn secondary sm" onclick="loadLogs()">立即刷新</button>
+        </div>
+      </div>
+
+      <div class="card" style="overflow-x:auto;">
+        <table class="std-table">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>状态</th>
+              <th>命中账号</th>
+              <th>模型</th>
+              <th>路由</th>
+              <th>耗时</th>
+              <th>图片(丢/总)</th>
+              <th>清洗字段 / 拍平</th>
+            </tr>
+          </thead>
+          <tbody id="logs-tbody">
+            <tr><td colspan="8" style="color:var(--muted); text-align:center; padding:24px;">暂无请求记录</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ADD / EDIT ACCOUNT MODAL -->
+<div class="modal-backdrop" id="acct-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="acct-modal-title">添加 Mistral 账号</h3>
+      <button class="icon-btn" onclick="closeModal('acct-modal')">✕</button>
+    </div>
+
+    <div class="sub-tabs" id="acct-add-tabs">
+      <button class="sub-tab active" onclick="switchAddMode('single')" id="subtab-single">单个添加</button>
+      <button class="sub-tab" onclick="switchAddMode('batch')" id="subtab-batch">批量导入 Key</button>
+    </div>
+
+    <input type="hidden" id="m-edit-id" value="" />
+
+    <div id="form-single" style="display:grid; gap:12px;">
+      <div class="field">
+        <label>Mistral API Key *</label>
+        <input id="m-key" type="password" placeholder="粘贴 Mistral API Key（编辑时留空保持不变）" />
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr 120px;">
+        <div class="field">
+          <label>备注名称 / 邮箱（留空会自动通过 /v1/whoami 拉取）</label>
+          <input id="m-name" placeholder="例如 work@gmail.com 或 账号1" />
+        </div>
+        <div class="field">
+          <label>优先级 (0~999)</label>
+          <input id="m-prio" type="number" value="50" min="0" max="999" />
+        </div>
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="field">
+          <label>自定义标签（逗号分隔，可选）</label>
+          <input id="m-tags" placeholder="例如 主力号, 欧洲区" />
+        </div>
+        <div class="field">
+          <label>自定义上游地址（留空使用全局默认）</label>
+          <input id="m-base" placeholder="https://api.mistral.ai" />
+        </div>
+      </div>
+    </div>
+
+    <div id="form-batch" style="display:none; gap:12px;">
+      <div class="field">
+        <label>每行一个 API Key，或 <code>备注名|API_KEY</code></label>
+        <textarea id="m-batch" style="min-height:140px;" placeholder="主力号|your_mistral_key_1&#10;备用号|your_mistral_key_2&#10;your_mistral_key_3"></textarea>
+      </div>
+      <div class="field">
+        <label>统一初始优先级</label>
+        <input id="m-batch-prio" type="number" value="50" min="0" max="999" />
+      </div>
+    </div>
+
+    <div style="margin-top:12px;" class="toggle-row" id="m-refresh-row">
+      <div>
+        <strong>添加后立即探测账号与模型额度</strong>
+        <small>自动查询 /v1/whoami、/v1/models、/v1/billing/subscription、/v1/billing/budget 与 /v1/admin/spend-limit</small>
+      </div>
+      <input id="m-auto-refresh" type="checkbox" checked />
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn secondary" onclick="closeModal('acct-modal')">取消</button>
+      <button class="btn" onclick="submitAccountModal()" id="m-submit-btn">保存并探测</button>
+    </div>
+  </div>
+</div>
+
+<!-- RAW INSPECTOR MODAL -->
+<div class="modal-backdrop" id="raw-modal">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <h3 id="raw-modal-title">账号探测详情</h3>
+      <button class="icon-btn" onclick="closeModal('raw-modal')">✕</button>
+    </div>
+    <pre class="code-box" id="raw-modal-body" style="max-height:62vh;"></pre>
+    <div class="modal-foot">
+      <button class="btn secondary" onclick="closeModal('raw-modal')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let adminToken = localStorage.getItem("mrg_admin_token") || "";
+  let addMode = "single";
+  let cachedAccounts = [];
+
+  // Theme
+  const savedTheme = localStorage.getItem("mrg_theme") || "light";
+  document.documentElement.setAttribute("data-theme", savedTheme);
+  function updateThemeBtn() {
+    const cur = document.documentElement.getAttribute("data-theme");
+    document.getElementById("theme-btn").textContent = cur === "dark" ? "切换浅色主题" : "切换深色主题";
+  }
+  updateThemeBtn();
+  function toggleTheme() {
+    const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("mrg_theme", next);
+    updateThemeBtn();
+  }
+
+  function headers() {
+    const h = { "Content-Type": "application/json", "X-MRG-Console": "1" };
+    if (adminToken) h["X-Admin-Token"] = adminToken;
+    return h;
+  }
+
+  function toast(msg) {
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.style.display = "block";
+    clearTimeout(window.__t);
+    window.__t = setTimeout(() => { el.style.display = "none"; }, 2800);
+  }
+
+  function esc(s) {
+    return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function saveAdminToken() {
+    adminToken = document.getElementById("admin-token-input").value.trim();
+    localStorage.setItem("mrg_admin_token", adminToken);
+    refreshAll();
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { ...opts, headers: { ...headers(), ...(opts.headers || {}) } });
+    if (res.status === 403) {
+      document.getElementById("auth-bar").style.display = "flex";
+      throw new Error("Admin access forbidden (403)");
+    }
+    document.getElementById("auth-bar").style.display = "none";
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  function fmtUptime(sec) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+  }
+
+  function fmtResetCountdown(iso) {
+    if (!iso) return "0h 0m";
+    const ts = Date.parse(iso);
+    if (Number.isNaN(ts)) return "";
+    const diff = Math.max(0, Math.floor((ts - Date.now()) / 1000));
+    const d = Math.floor(diff / 86400);
+    const h = Math.floor((diff % 86400) / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    if (d > 0) return `${d}d ${h}h`;
+    return `${h}h ${m}m`;
+  }
+
+  function fmtDateParts(ts) {
+    if (!ts) return { d: "未刷新", t: "-" };
+    const dt = new Date(ts * 1000);
+    const d = `${dt.getFullYear()}/${dt.getMonth() + 1}/${dt.getDate()}`;
+    const t = `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
+    return { d, t };
+  }
+
+  function pctClass(pct) {
+    if (pct < 20) return "err";
+    if (pct < 60) return "warn";
+    return "";
+  }
+
+  function planPillClass(plan) {
+    const p = (plan || "").toUpperCase();
+    if (p.includes("ENT")) return "plan-ent";
+    if (p.includes("PRO") || p.includes("TEAM")) return "plan-pro";
+    if (p.includes("PAYG")) return "plan-payg";
+    return "plan-api";
+  }
+
+  function quotaIcon(icon) {
+    if (icon === "bolt") return "⚡";
+    if (icon === "wallet") return "◈";
+    return "✦";
+  }
+
+  function renderQuotaCards(acc) {
+    const quotas = acc.quotas || [];
+    if (!quotas.length) {
+      if (acc.last_status === "401") {
+        return `<div class="quota-card wide" style="border-color:rgba(220,38,38,.35);">
+          <div class="q-left"><span class="q-icon" style="color:var(--red);">⚠</span><span class="q-label" style="color:var(--red);">API Key 无效 (401)</span></div>
+          <div class="q-right"><span class="q-pct err">0%</span></div>
+          <div class="q-bar-track"><div class="q-bar-fill err" style="width:0%"></div></div>
+        </div>`;
+      }
+      if (acc.last_status === "402") {
+        return `<div class="quota-card wide" style="border-color:rgba(220,38,38,.35);">
+          <div class="q-left"><span class="q-icon" style="color:var(--red);">⚠</span><span class="q-label" style="color:var(--red);">额度已耗尽 (402 Payment Required)</span></div>
+          <div class="q-right"><span class="q-pct err">0%</span></div>
+          <div class="q-bar-track"><div class="q-bar-fill err" style="width:0%"></div></div>
+        </div>`;
+      }
+      return `<div class="quota-card wide">
+        <div class="q-left"><span class="q-icon" style="color:var(--accent);">✦</span><span class="q-label">${acc.models && acc.models.length ? `已发现 ${acc.models.length} 个可用模型 · 额度随请求头实时更新` : "点击右侧 ↻ 探测账号与模型剩余额度"}</span></div>
+        <div class="q-right"><span class="q-pct">${acc.last_status === "ok" ? "100%" : "-"}</span></div>
+        <div class="q-bar-track"><div class="q-bar-fill" style="width:${acc.last_status === "ok" ? 100 : 0}%"></div></div>
+      </div>`;
+    }
+
+    return `<div class="quota-grid">` + quotas.map(q => {
+      const pct = Number(q.remaining_pct ?? 100);
+      const cls = pctClass(pct);
+      const resetTxt = fmtResetCountdown(q.reset_at);
+      const subs = (q.sub_tags || []).map(s => `<span class="q-sub">${esc(s)}</span>`).join("");
+      return `<div class="quota-card ${q.wide ? "wide" : ""}" title="${esc(q.detail || q.label)}">
+        <div class="q-left">
+          <span class="q-icon" style="color:var(--accent);">${quotaIcon(q.icon)}</span>
+          <span class="q-label">${esc(q.label)}</span>
+          ${subs}
+        </div>
+        <div class="q-right">
+          ${resetTxt ? `<span class="q-reset ${cls}">🕒 ${esc(resetTxt)}</span>` : ""}
+          <span class="q-pct ${cls}">${Math.round(pct)}%</span>
+        </div>
+        <div class="q-bar-track"><div class="q-bar-fill ${cls}" style="width:${Math.max(0, Math.min(100, pct))}%"></div></div>
+      </div>`;
+    }).join("") + `</div>`;
+  }
+
+  async function loadAccounts() {
+    try {
+      const data = await api("/api/admin/accounts");
+      cachedAccounts = data.accounts || [];
+      const sum = data.summary || { total: 0, enabled: 0, healthy: 0, cooling: 0 };
+
+      document.getElementById("nav-acct-count").textContent = sum.total;
+      document.getElementById("acct-kpi-total").textContent = sum.total;
+      document.getElementById("acct-kpi-enabled").textContent = `已启用 ${sum.enabled}`;
+      document.getElementById("acct-kpi-healthy").textContent = sum.healthy;
+      document.getElementById("acct-kpi-cooling").textContent = sum.cooling;
+      document.getElementById("acct-kpi-url").textContent = location.origin + "/v1";
+
+      const tip = document.getElementById("pool-routing-tip");
+      tip.style.display = (sum.enabled > 0 && data.passthrough_auth) ? "flex" : "none";
+
+      const tbody = document.getElementById("accounts-tbody");
+      if (!cachedAccounts.length) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:42px 16px; color:var(--muted);">
+          暂无接入账号。点击右上角 <strong>+ 添加账号</strong> 填入一个或多个 Mistral API Key，系统会自动识别邮箱、套餐与剩余额度。
+        </td></tr>`;
+        return;
+      }
+
+      const nowSec = Date.now() / 1000;
+      tbody.innerHTML = cachedAccounts.map(acc => {
+        const displayTitle = acc.email || acc.name || acc.id;
+        const coolingLeft = acc.cooldown_until > nowSec ? Math.ceil(acc.cooldown_until - nowSec) : 0;
+        const dt = fmtDateParts(acc.last_checked_at);
+
+        const metaPills = [];
+        if (acc.pinned) metaPills.push(`<span class="pill pin">★ 当前优先</span>`);
+        metaPills.push(`<span class="pill ${planPillClass(acc.plan)}">◆ ${esc(acc.plan || "API")}</span>`);
+        metaPills.push(`<span class="pill prio">优先级: ${acc.priority}</span>`);
+        if (acc.workspace_name || acc.org_name) {
+          metaPills.push(`<span class="pill tag-0">${esc(acc.workspace_name || acc.org_name)}</span>`);
+        }
+        if (coolingLeft > 0) {
+          metaPills.push(`<span class="pill status-err">冷却 ${coolingLeft}s (${esc(acc.last_status)})</span>`);
+        } else if (acc.last_status && !["ok", "unchecked"].includes(acc.last_status)) {
+          metaPills.push(`<span class="pill status-err">${esc(acc.last_status)}</span>`);
+        }
+
+        const modelTags = (acc.tags || []).map((t, idx) => `<span class="pill tag-${idx % 4}">${esc(t)}</span>`).join("");
+
+        return `<tr class="acct-row ${acc.enabled ? "" : "disabled"}">
+          <td>
+            <div class="acct-name">
+              <span>${esc(displayTitle)}</span>
+            </div>
+            <div class="pill-row">${metaPills.join("")}</div>
+            ${modelTags ? `<div class="pill-row">${modelTags}</div>` : ""}
+            <div style="font-size:11px; color:var(--muted); margin-top:5px; font-family:var(--mono);">
+              Key: ${esc(acc.key_preview || "-")} · 已服务 ${acc.requests_served || 0} 次
+            </div>
+          </td>
+          <td>${renderQuotaCards(acc)}</td>
+          <td class="time-col">
+            <div>${esc(dt.d)}</div>
+            <div class="time-sub">${esc(dt.t)}</div>
+          </td>
+          <td>
+            <div class="action-grid">
+              <button class="icon-btn" title="查看探测详情 JSON" onclick="showRawAccount('${acc.id}')">ⓘ</button>
+              <button class="icon-btn ${acc.pinned ? "active" : ""}" title="设为当前优先账号" onclick="activateAccount('${acc.id}')">⇄</button>
+              <button class="icon-btn" title="刷新该账号额度" onclick="refreshOneAccount('${acc.id}')">↻</button>
+              <button class="icon-btn" title="编辑账号" onclick="openEditModal('${acc.id}')">✎</button>
+              <button class="icon-btn ${acc.enabled ? "" : "active"}" title="${acc.enabled ? "禁用" : "启用"}" onclick="toggleAccount('${acc.id}', ${!acc.enabled})">⏻</button>
+              <button class="icon-btn danger" title="删除账号" onclick="deleteAccount('${acc.id}')">🗑</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+    } catch (_) {}
+  }
+
+  async function disablePassthroughForPool() {
+    try {
+      await api("/api/admin/config", { method: "PUT", body: JSON.stringify({ passthrough_auth: false }) });
+      toast("已切换为多账号池调度模式（客户端免传上游 Key 即可接入）");
+      refreshAll();
+    } catch (e) {
+      toast("切换失败: " + e.message);
+    }
+  }
+
+  function openModal(id) { document.getElementById(id).classList.add("open"); }
+  function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+  function switchAddMode(mode) {
+    addMode = mode;
+    document.getElementById("subtab-single").classList.toggle("active", mode === "single");
+    document.getElementById("subtab-batch").classList.toggle("active", mode === "batch");
+    document.getElementById("form-single").style.display = mode === "single" ? "grid" : "none";
+    document.getElementById("form-batch").style.display = mode === "batch" ? "grid" : "none";
+  }
+
+  function openAddModal() {
+    document.getElementById("acct-modal-title").textContent = "添加 Mistral 账号";
+    document.getElementById("acct-add-tabs").style.display = "flex";
+    document.getElementById("m-refresh-row").style.display = "flex";
+    document.getElementById("m-submit-btn").textContent = "保存并探测";
+    document.getElementById("m-edit-id").value = "";
+    document.getElementById("m-key").value = "";
+    document.getElementById("m-name").value = "";
+    document.getElementById("m-prio").value = "50";
+    document.getElementById("m-tags").value = "";
+    document.getElementById("m-base").value = "";
+    document.getElementById("m-batch").value = "";
+    switchAddMode("single");
+    openModal("acct-modal");
+  }
+
+  function openEditModal(id) {
+    const acc = cachedAccounts.find(a => a.id === id);
+    if (!acc) return;
+    document.getElementById("acct-modal-title").textContent = "编辑账号";
+    document.getElementById("acct-add-tabs").style.display = "none";
+    document.getElementById("m-refresh-row").style.display = "none";
+    document.getElementById("m-submit-btn").textContent = "保存修改";
+    document.getElementById("m-edit-id").value = id;
+    document.getElementById("m-key").value = "";
+    document.getElementById("m-name").value = acc.name || acc.email || "";
+    document.getElementById("m-prio").value = String(acc.priority ?? 50);
+    document.getElementById("m-tags").value = (acc.tags || []).join(", ");
+    document.getElementById("m-base").value = acc.upstream_base || "";
+    switchAddMode("single");
+    openModal("acct-modal");
+  }
+
+  async function submitAccountModal() {
+    const editId = document.getElementById("m-edit-id").value;
+    try {
+      if (editId) {
+        const patch = {
+          name: document.getElementById("m-name").value.trim(),
+          priority: Number(document.getElementById("m-prio").value),
+          tags: document.getElementById("m-tags").value,
+          upstream_base: document.getElementById("m-base").value.trim(),
+        };
+        const newKey = document.getElementById("m-key").value.trim();
+        if (newKey) patch.api_key = newKey;
+        await api(`/api/admin/accounts/${editId}`, { method: "PATCH", body: JSON.stringify(patch) });
+        toast("账号已更新");
+      } else if (addMode === "batch") {
+        const batch_keys = document.getElementById("m-batch").value.trim();
+        if (!batch_keys) return toast("请输入至少一个 API Key");
+        toast("正在批量导入并探测额度...");
+        await api("/api/admin/accounts", {
+          method: "POST",
+          body: JSON.stringify({
+            batch_keys,
+            priority: Number(document.getElementById("m-batch-prio").value),
+            auto_refresh: document.getElementById("m-auto-refresh").checked,
+          }),
+        });
+        toast("批量导入完成");
+      } else {
+        const api_key = document.getElementById("m-key").value.trim();
+        if (!api_key) return toast("请填写 API Key");
+        toast("正在添加并探测账号额度...");
+        await api("/api/admin/accounts", {
+          method: "POST",
+          body: JSON.stringify({
+            api_key,
+            name: document.getElementById("m-name").value.trim(),
+            priority: Number(document.getElementById("m-prio").value),
+            tags: document.getElementById("m-tags").value,
+            upstream_base: document.getElementById("m-base").value.trim(),
+            auto_refresh: document.getElementById("m-auto-refresh").checked,
+          }),
+        });
+        toast("账号已添加并完成额度探测");
+      }
+      closeModal("acct-modal");
+      loadAccounts();
+    } catch (e) {
+      toast("操作失败: " + e.message);
+    }
+  }
+
+  async function refreshOneAccount(id) {
+    toast("正在刷新该账号额度...");
+    try {
+      await api(`/api/admin/accounts/${id}/refresh`, { method: "POST" });
+      toast("额度已刷新");
+      loadAccounts();
+    } catch (e) { toast("刷新失败: " + e.message); }
+  }
+
+  async function refreshAllAccounts() {
+    toast("正在并发刷新全部账号额度...");
+    try {
+      await api("/api/admin/accounts/refresh-all", { method: "POST" });
+      toast("全部账号刷新完成");
+      loadAccounts();
+    } catch (e) { toast("刷新失败: " + e.message); }
+  }
+
+  async function activateAccount(id) {
+    try {
+      await api(`/api/admin/accounts/${id}/activate`, { method: "POST" });
+      toast("已设为当前优先账号");
+      loadAccounts();
+    } catch (e) { toast("切换失败: " + e.message); }
+  }
+
+  async function toggleAccount(id, enabled) {
+    try {
+      await api(`/api/admin/accounts/${id}`, { method: "PATCH", body: JSON.stringify({ enabled }) });
+      toast(enabled ? "已启用账号" : "已禁用账号");
+      loadAccounts();
+    } catch (e) { toast("操作失败: " + e.message); }
+  }
+
+  async function deleteAccount(id) {
+    if (!confirm("确定移除这个账号吗？")) return;
+    try {
+      await api(`/api/admin/accounts/${id}`, { method: "DELETE" });
+      toast("已移除账号");
+      loadAccounts();
+    } catch (e) { toast("删除失败: " + e.message); }
+  }
+
+  async function showRawAccount(id) {
+    try {
+      const { account } = await api(`/api/admin/accounts/${id}/raw`);
+      document.getElementById("raw-modal-title").textContent = `账号探测详情 · ${account.email || account.name}`;
+      document.getElementById("raw-modal-body").textContent = JSON.stringify(account, null, 2);
+      openModal("raw-modal");
+    } catch (e) { toast("读取失败: " + e.message); }
+  }
+
+  function renderSnippets() {
+    const base = location.origin;
+    document.getElementById("snippet-codex").textContent =
+`# ~/.codex/config.toml
+model_provider = "mistral_relay"
+
+[model_providers.mistral_relay]
+name = "Mistral Relay Gateway"
+base_url = "${base}/v1"
+env_key = "MISTRAL_API_KEY"
+wire_api = "responses"`;
+
+    document.getElementById("snippet-caddy").textContent =
+`# Caddyfile (挂在 New API 前方做 Sidecar)
+@relay_gw {
+    path /v1/chat/completions /v1/responses /gw/*
+}
+handle @relay_gw {
+    reverse_proxy mistral-relay-gateway:8790 {
+        flush_interval -1
+        transport http {
+            read_timeout 360s
+            write_timeout 360s
+        }
+    }
+}`;
+  }
+
+  async function loadStatus() {
+    const pill = document.getElementById("status-pill");
+    try {
+      const data = await api("/api/admin/status");
+      pill.classList.remove("err");
+      document.getElementById("status-text").textContent = "网关运行中";
+      document.getElementById("version-label").textContent = `v${data.version}`;
+      document.getElementById("mode-summary").textContent = `${data.upstream_mode} → ${data.upstream_base}`;
+
+      const t = data.telemetry;
+      const c = data.concurrency;
+      const inflightTotal = Object.values(c.inflight || {}).reduce((a, b) => a + b, 0);
+
+      document.getElementById("nav-log-count").textContent = t.total_requests;
+      document.getElementById("kpi-reqs").textContent = t.total_requests;
+      document.getElementById("kpi-uptime").textContent = `运行时间 ${fmtUptime(t.uptime_seconds)}`;
+      document.getElementById("kpi-inflight").textContent = inflightTotal;
+      document.getElementById("kpi-rejected").textContent = `限流拒绝 ${c.total_rejected}`;
+      document.getElementById("kpi-imgs").textContent = t.total_images_dropped;
+      document.getElementById("kpi-fields").textContent = t.total_fields_stripped;
+      document.getElementById("kpi-norm").textContent = t.total_normalized_chunks;
+      document.getElementById("kpi-errs").textContent = t.total_errors;
+      document.getElementById("kpi-resp-mode").textContent = `Responses: ${data.effective_responses_mode}`;
+
+      const limits = c.model_limits || {};
+      const keys = Object.keys(limits);
+      const cbox = document.getElementById("concurrency-box");
+      if (!keys.length) {
+        cbox.textContent = "未配置模型级并发上限（所有模型直接放行）";
+      } else {
+        cbox.innerHTML = `<div class="chip-list">` + keys.map(k => {
+          const cur = (c.inflight || {})[k] || 0;
+          return `<span class="badge info">${esc(k)}: ${cur} / ${limits[k]}</span>`;
+        }).join("") + `</div>`;
+      }
+    } catch (e) {
+      pill.classList.add("err");
+      document.getElementById("status-text").textContent = "连接异常";
+    }
+  }
+
+  async function loadConfig() {
+    try {
+      const { config: c } = await api("/api/admin/config");
+      document.getElementById("cfg-upstream-mode").value = c.upstream_mode;
+      document.getElementById("cfg-upstream-base").value = c.upstream_base;
+      document.getElementById("cfg-upstream-key").value = c.upstream_api_key || "";
+      document.getElementById("cfg-gateway-key").value = c.gateway_key || "";
+      document.getElementById("cfg-passthrough").checked = !!c.passthrough_auth;
+      document.getElementById("cfg-strict").checked = !!c.strict_mistral_whitelist;
+      document.getElementById("cfg-normalize").checked = !!c.normalize_content_arrays;
+      document.getElementById("cfg-mistral-chat-ep").value = c.mistral_chat_endpoint || "native";
+      document.getElementById("cfg-responses-mode").value = c.responses_mode;
+      document.getElementById("cfg-timeout").value = c.upstream_timeout;
+      document.getElementById("cfg-keep-m").value = c.keep_images_mistral;
+      document.getElementById("cfg-maxmb-m").value = (c.max_body_bytes_mistral / (1024 * 1024)).toFixed(1);
+      document.getElementById("cfg-keep-o").value = c.keep_images_other;
+      document.getElementById("cfg-maxmb-o").value = (c.max_body_bytes_other / (1024 * 1024)).toFixed(1);
+      document.getElementById("cfg-m-models").value = (c.mistral_models || []).join(", ");
+      document.getElementById("cfg-m-prefixes").value = (c.mistral_prefixes || []).join(", ");
+      document.getElementById("cfg-wait").value = c.concurrency_wait_seconds;
+      const limStr = Object.entries(c.model_concurrency_limits || {}).map(([k, v]) => `${k}=${v}`).join(", ");
+      document.getElementById("cfg-limits").value = limStr;
+    } catch (_) {}
+  }
+
+  function onModePreset() {
+    const mode = document.getElementById("cfg-upstream-mode").value;
+    const baseInput = document.getElementById("cfg-upstream-base");
+    if (mode === "direct_mistral" && baseInput.value.includes("new-api")) {
+      baseInput.value = "https://api.mistral.ai";
+    } else if (mode === "new_api" && baseInput.value.includes("api.mistral.ai")) {
+      baseInput.value = "http://new-api:3000";
+    }
+  }
+
+  async function saveConfig() {
+    try {
+      const patch = {
+        upstream_mode: document.getElementById("cfg-upstream-mode").value,
+        upstream_base: document.getElementById("cfg-upstream-base").value.trim(),
+        upstream_api_key: document.getElementById("cfg-upstream-key").value.trim(),
+        gateway_key: document.getElementById("cfg-gateway-key").value.trim(),
+        passthrough_auth: document.getElementById("cfg-passthrough").checked,
+        strict_mistral_whitelist: document.getElementById("cfg-strict").checked,
+        normalize_content_arrays: document.getElementById("cfg-normalize").checked,
+        mistral_chat_endpoint: document.getElementById("cfg-mistral-chat-ep").value,
+        responses_mode: document.getElementById("cfg-responses-mode").value,
+        upstream_timeout: Number(document.getElementById("cfg-timeout").value),
+        keep_images_mistral: Number(document.getElementById("cfg-keep-m").value),
+        max_body_bytes_mistral: Math.round(Number(document.getElementById("cfg-maxmb-m").value) * 1024 * 1024),
+        keep_images_other: Number(document.getElementById("cfg-keep-o").value),
+        max_body_bytes_other: Math.round(Number(document.getElementById("cfg-maxmb-o").value) * 1024 * 1024),
+        mistral_models: document.getElementById("cfg-m-models").value,
+        mistral_prefixes: document.getElementById("cfg-m-prefixes").value,
+        model_concurrency_limits: document.getElementById("cfg-limits").value,
+        concurrency_wait_seconds: Number(document.getElementById("cfg-wait").value),
+      };
+      const res = await api("/api/admin/config", { method: "PUT", body: JSON.stringify(patch) });
+      toast(res.saved ? "配置已热生效并持久化保存" : "配置已热生效（内存模式）");
+      refreshAll();
+    } catch (e) {
+      toast("保存失败: " + e.message);
+    }
+  }
+
+  async function loadLogs() {
+    try {
+      const { events } = await api("/api/admin/logs?limit=100");
+      const tbody = document.getElementById("logs-tbody");
+      if (!events.length) {
+        tbody.innerHTML = `<tr><td colspan="8" style="color:var(--muted); text-align:center; padding:24px;">暂无请求记录</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = events.map(ev => {
+        const dt = new Date(ev.ts * 1000).toLocaleTimeString();
+        const stCls = ev.status >= 500 ? "err" : ev.status >= 400 ? "warn" : "ok";
+        const tags = (ev.stripped_fields || []).slice(0, 3).map(f => `<span class="badge warn">${esc(f)}</span>`).join(" ");
+        const extra = (ev.stripped_fields || []).length > 3 ? ` <span class="badge info">+${ev.stripped_fields.length - 3}</span>` : "";
+        const normTag = ev.normalized_chunks > 0 ? ` <span class="badge cyan">flat:${ev.normalized_chunks}</span>` : "";
+        const errTag = ev.error ? `<div style="color:var(--red); font-size:11px; margin-top:3px;">${esc(ev.error)}</div>` : "";
+        return `<tr>
+          <td style="font-family:var(--mono); color:var(--muted);">${dt}</td>
+          <td><span class="badge ${stCls}">${ev.status}</span></td>
+          <td style="font-family:var(--mono); color:var(--link);">${esc(ev.account || "透传/单Key")}</td>
+          <td style="font-family:var(--mono);">${esc(ev.model)}${ev.mistral ? ' <span class="badge info">M</span>' : ''}</td>
+          <td style="font-family:var(--mono);">${esc(ev.route_mode)}${ev.stream ? ' · sse' : ''}</td>
+          <td style="font-family:var(--mono);">${ev.latency_ms}ms</td>
+          <td style="font-family:var(--mono);">${ev.images_dropped}/${ev.images_total}</td>
+          <td>${tags}${extra}${normTag}${errTag || (!tags && !normTag ? '<span style="color:var(--muted);">-</span>' : '')}</td>
+        </tr>`;
+      }).join("");
+    } catch (_) {}
+  }
+
+  function copyText(txt) {
+    navigator.clipboard.writeText(txt).then(() => toast("已复制到剪贴板"));
+  }
+  function copyElement(id) {
+    copyText(document.getElementById(id).textContent);
+  }
+
+  function refreshAll() {
+    loadAccounts();
+    loadStatus();
+    loadConfig();
+    loadLogs();
+  }
+
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  renderSnippets();
+  refreshAll();
+  setInterval(() => {
+    loadStatus();
+    loadAccounts();
+    if (document.getElementById("auto-refresh").checked) loadLogs();
+  }, 4000);
+</script>
+</body>
+</html>
