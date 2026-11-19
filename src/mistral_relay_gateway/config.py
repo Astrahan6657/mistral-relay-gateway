@@ -92,6 +92,7 @@ class GatewayConfig:
     strict_mistral_whitelist: bool = True
     responses_mode: ResponsesMode = "auto"
     normalize_content_arrays: bool = True
+    rewrite_responses_reasoning: bool = True
     mistral_models: list[str] = field(default_factory=list)
     mistral_prefixes: list[str] = field(default_factory=lambda: list(DEFAULT_MISTRAL_PREFIXES))
 
@@ -161,6 +162,8 @@ class GatewayConfig:
             self.responses_mode = patch["responses_mode"]
         if "normalize_content_arrays" in patch:
             self.normalize_content_arrays = bool(patch["normalize_content_arrays"])
+        if "rewrite_responses_reasoning" in patch:
+            self.rewrite_responses_reasoning = bool(patch["rewrite_responses_reasoning"])
 
         if "mistral_models" in patch:
             val = patch["mistral_models"]
@@ -253,6 +256,7 @@ class GatewayConfig:
             cfg.responses_mode = resp_mode  # type: ignore[assignment]
 
         cfg.normalize_content_arrays = _parse_bool(os.environ.get("NORMALIZE_CONTENT_ARRAYS"), True)
+        cfg.rewrite_responses_reasoning = _parse_bool(os.environ.get("REWRITE_RESPONSES_REASONING"), True)
         if os.environ.get("MISTRAL_MODELS") is not None:
             cfg.mistral_models = _parse_csv(os.environ.get("MISTRAL_MODELS"), [])
         if os.environ.get("MISTRAL_PREFIXES") is not None:

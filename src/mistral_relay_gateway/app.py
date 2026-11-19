@@ -28,6 +28,7 @@ from .transforms import (
     normalize_chat_object,
     normalize_chat_sse_stream,
     responses_req_to_chat,
+    rewrite_responses_reasoning_sse_stream,
     sanitize_mistral_chat,
     sanitize_mistral_responses,
     stream_chat_to_responses,
@@ -427,6 +428,7 @@ def create_app(
                 "keep_images_other": c.keep_images_other,
                 "upstream_timeout": c.upstream_timeout,
                 "normalize_content_arrays": c.normalize_content_arrays,
+                "rewrite_responses_reasoning": c.rewrite_responses_reasoning,
                 "accounts": rt.accounts.summary(),
                 "concurrency": rt.limiter.stats(),
             },
@@ -933,12 +935,20 @@ def create_app(
                 acc_label = (used_acc.email or used_acc.name) if used_acc else ""
 
                 if is_stream:
+                    norm_counter = [0]
                     stream_err = [""]
+                    rewrite_reasoning = mistral and cfg.rewrite_responses_reasoning and upstream.status_code < 400
 
                     async def gen_native():
                         try:
-                            async for chunk in upstream.aiter_bytes():
-                                yield chunk
+                            if rewrite_reasoning:
+                                async for chunk in rewrite_responses_reasoning_sse_stream(
+                                    upstream, counter=norm_counter
+                                ):
+                                    yield chunk
+                            else:
+                                async for chunk in upstream.aiter_bytes():
+                                    yield chunk
                         except httpx.HTTPError as exc:
                             stream_err[0] = _fmt_exc(exc)
                         finally:
@@ -957,6 +967,7 @@ def create_app(
                                 images_total=total_imgs,
                                 images_dropped=dropped,
                                 stripped_fields=stripped,
+                                normalized_chunks=norm_counter[0],
                                 account=acc_label,
                                 error=stream_err[0],
                             )

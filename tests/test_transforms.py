@@ -12,6 +12,7 @@ from mistral_relay_gateway.transforms import (
     normalize_chat_object,
     normalize_chat_sse_stream,
     responses_req_to_chat,
+    rewrite_responses_reasoning_sse_stream,
     sanitize_mistral_chat,
     sanitize_mistral_responses,
     stream_chat_to_responses,
@@ -100,7 +101,12 @@ def test_sanitize_mistral_chat_strict_openapi_3_1():
 def test_sanitize_mistral_responses_native():
     payload = {
         "model": "mistral-large-latest",
-        "input": "hello",
+        "input": [
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": [{"type": "output_text", "text": "hi"}]},
+            {"type": "function_call", "call_id": "c1", "name": "ping", "arguments": "{}"},
+            {"type": "function_call_output", "call_id": "c1", "output": "pong"},
+        ],
         "previous_response_id": "resp_old",
         "reasoning": {"effort": "high", "summary": "detailed"},
         "reasoning_summary_delivery": "inline",
@@ -111,6 +117,11 @@ def test_sanitize_mistral_responses_native():
     assert "reasoning_summary_delivery" not in cleaned
     assert "previous_response_id" in stripped
     assert "reasoning.summary" in stripped
+    assert cleaned["input"][0]["type"] == "message"
+    assert cleaned["input"][1]["type"] == "message"
+    assert cleaned["input"][2]["type"] == "function_call"
+    assert cleaned["input"][3]["type"] == "function_call_output"
+    assert "input[].type=message" in stripped
 
 
 def test_image_compaction_count_and_bytes():
@@ -289,3 +300,74 @@ async def test_stream_chat_to_responses():
     assert "event: response.function_call_arguments.done" in stream_text
     assert "event: response.completed" in stream_text
     assert '"input_tokens":10' in stream_text
+
+
+@pytest.mark.asyncio
+async def test_rewrite_responses_reasoning_sse_stream():
+    events = [
+        (
+            "response.content_part.added",
+            {
+                "type": "response.content_part.added",
+                "item_id": "rs_1",
+                "output_index": 0,
+                "content_index": 0,
+                "part": {"type": "reasoning_text", "text": ""},
+            },
+        ),
+        (
+            "response.reasoning_text.delta",
+            {
+                "type": "response.reasoning_text.delta",
+                "item_id": "rs_1",
+                "output_index": 0,
+                "content_index": 0,
+                "delta": "step 1",
+            },
+        ),
+        (
+            "response.reasoning_text.done",
+            {
+                "type": "response.reasoning_text.done",
+                "item_id": "rs_1",
+                "output_index": 0,
+                "content_index": 0,
+                "text": "step 1",
+            },
+        ),
+        (
+            "response.content_part.done",
+            {
+                "type": "response.content_part.done",
+                "item_id": "rs_1",
+                "output_index": 0,
+                "content_index": 0,
+                "part": {"type": "reasoning_text", "text": "step 1"},
+            },
+        ),
+        (
+            "response.output_text.delta",
+            {
+                "type": "response.output_text.delta",
+                "item_id": "msg_1",
+                "output_index": 1,
+                "content_index": 0,
+                "delta": "final answer",
+            },
+        ),
+    ]
+    raw = "".join(f"event: {ev}\ndata: {json.dumps(data)}\n\n" for ev, data in events).encode()
+    resp = httpx.Response(200, content=raw)
+    counter = [0]
+    out = b"".join([c async for c in rewrite_responses_reasoning_sse_stream(resp, counter=counter)]).decode()
+
+    assert counter[0] == 4
+    assert "event: response.reasoning_summary_part.added" in out
+    assert "event: response.reasoning_summary_text.delta" in out
+    assert "event: response.reasoning_summary_text.done" in out
+    assert "event: response.reasoning_summary_part.done" in out
+    assert '"part":{"type":"summary_text","text":""}' in out
+    assert '"summary_index":0' in out
+    assert "event: response.output_text.delta" in out
+    assert '"delta": "final answer"' in out
+    assert "reasoning_text" not in out

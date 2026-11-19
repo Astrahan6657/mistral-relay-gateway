@@ -814,6 +814,13 @@
             </div>
             <input id="cfg-normalize" type="checkbox" />
           </div>
+          <div class="toggle-row">
+            <div>
+              <strong>Responses 思考流事件重写 (rewrite_responses_reasoning)</strong>
+              <small>将原生 /v1/responses 的 reasoning_text SSE 事件重写为 reasoning_summary_text（兼容 ZCode / Vercel AI SDK 思考过程展示）</small>
+            </div>
+            <input id="cfg-rewrite-reasoning" type="checkbox" />
+          </div>
         </div>
 
         <div class="form-grid">
@@ -1459,6 +1466,7 @@ handle @relay_gw {
       document.getElementById("cfg-passthrough").checked = !!c.passthrough_auth;
       document.getElementById("cfg-strict").checked = !!c.strict_mistral_whitelist;
       document.getElementById("cfg-normalize").checked = !!c.normalize_content_arrays;
+      document.getElementById("cfg-rewrite-reasoning").checked = c.rewrite_responses_reasoning !== false;
       document.getElementById("cfg-mistral-chat-ep").value = c.mistral_chat_endpoint || "native";
       document.getElementById("cfg-responses-mode").value = c.responses_mode;
       document.getElementById("cfg-timeout").value = c.upstream_timeout;
@@ -1494,6 +1502,7 @@ handle @relay_gw {
         passthrough_auth: document.getElementById("cfg-passthrough").checked,
         strict_mistral_whitelist: document.getElementById("cfg-strict").checked,
         normalize_content_arrays: document.getElementById("cfg-normalize").checked,
+        rewrite_responses_reasoning: document.getElementById("cfg-rewrite-reasoning").checked,
         mistral_chat_endpoint: document.getElementById("cfg-mistral-chat-ep").value,
         responses_mode: document.getElementById("cfg-responses-mode").value,
         upstream_timeout: Number(document.getElementById("cfg-timeout").value),

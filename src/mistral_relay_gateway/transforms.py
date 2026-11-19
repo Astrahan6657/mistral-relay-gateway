@@ -279,12 +279,30 @@ def sanitize_mistral_chat(
 def sanitize_mistral_responses(payload: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     """
     Clean a native `/v1/responses` request for Mistral OpenAPI 3.1.0 `CreateResponseRequest`.
-    Preserves almost everything (`additionalProperties: true`), while stripping fields
-    Mistral explicitly constrains to null (`previous_response_id`, etc.) or invalid reasoning keys.
+    - Strips fields Mistral explicitly constrains to null (`previous_response_id`, etc.)
+      or invalid reasoning keys.
+    - Injects `"type": "message"` on `input` items lacking `type` (prevents Mistral 400 code 3051
+      when clients like ZCode omit `type` on multi-turn assistant messages).
     """
     cleaned, stripped = strip_global_fields(payload)
     out = dict(cleaned)
     extra: list[str] = list(stripped)
+
+    inp = out.get("input")
+    if isinstance(inp, list):
+        fixed_inp = []
+        injected = False
+        for item in inp:
+            if isinstance(item, dict) and not item.get("type"):
+                patched = dict(item)
+                patched["type"] = "message"
+                fixed_inp.append(patched)
+                injected = True
+            else:
+                fixed_inp.append(item)
+        if injected:
+            out["input"] = fixed_inp
+            extra.append("input[].type=message")
 
     for null_key in _MISTRAL_RESPONSES_NULL_ONLY:
         if out.get(null_key) is not None:
@@ -308,6 +326,109 @@ def sanitize_mistral_responses(payload: dict[str, Any]) -> tuple[dict[str, Any],
             out.pop("reasoning", None)
 
     return out, sorted(set(extra))
+
+
+def rewrite_responses_reasoning_event(event_name: str | None, obj: dict[str, Any]) -> tuple[str | None, bool]:
+    """
+    Rewrite Mistral native Responses API raw reasoning SSE events into summary events
+    recognized by Vercel AI SDK / ZCode:
+    - response.reasoning_text.delta -> response.reasoning_summary_text.delta (+ summary_index)
+    - response.reasoning_text.done  -> response.reasoning_summary_text.done  (+ summary_index)
+    - response.content_part.added/done (part.type == reasoning_text)
+        -> response.reasoning_summary_part.added/done (part.type = summary_text, + summary_index)
+    """
+    etype = obj.get("type") or event_name
+    if etype == "response.reasoning_text.delta":
+        obj["type"] = "response.reasoning_summary_text.delta"
+        if "summary_index" not in obj:
+            obj["summary_index"] = obj.get("content_index", 0)
+        return "response.reasoning_summary_text.delta", True
+
+    if etype == "response.reasoning_text.done":
+        obj["type"] = "response.reasoning_summary_text.done"
+        if "summary_index" not in obj:
+            obj["summary_index"] = obj.get("content_index", 0)
+        return "response.reasoning_summary_text.done", True
+
+    if etype in ("response.content_part.added", "response.content_part.done"):
+        part = obj.get("part")
+        if isinstance(part, dict) and part.get("type") == "reasoning_text":
+            suffix = "added" if etype.endswith(".added") else "done"
+            new_type = f"response.reasoning_summary_part.{suffix}"
+            obj["type"] = new_type
+            part["type"] = "summary_text"
+            if "summary_index" not in obj:
+                obj["summary_index"] = obj.get("content_index", 0)
+            return new_type, True
+
+    return event_name, False
+
+
+async def rewrite_responses_reasoning_sse_stream(
+    upstream_resp: httpx.Response,
+    *,
+    counter: list[int] | None = None,
+) -> AsyncIterator[bytes]:
+    """
+    Reassemble SSE frames along blank-line boundaries and rewrite Mistral
+    `reasoning_text` events into `reasoning_summary_text` events.
+    """
+    event_name: str | None = None
+    data_lines: list[str] = []
+    other_lines: list[str] = []
+
+    def _flush_frame() -> bytes | None:
+        nonlocal event_name, data_lines, other_lines
+        if event_name is None and not data_lines and not other_lines:
+            return None
+
+        ev_out = event_name
+        raw_data = "\n".join(data_lines)
+        out_data = raw_data
+
+        if raw_data and raw_data != "[DONE]" and (
+            "reasoning_text" in raw_data or (event_name and "reasoning_text" in event_name)
+        ):
+            try:
+                obj = json.loads(raw_data)
+                if isinstance(obj, dict):
+                    new_ev, changed = rewrite_responses_reasoning_event(event_name, obj)
+                    if changed:
+                        ev_out = new_ev
+                        out_data = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+                        if counter is not None:
+                            counter[0] += 1
+            except Exception:
+                pass
+
+        lines_out: list[str] = list(other_lines)
+        if ev_out is not None:
+            lines_out.append(f"event: {ev_out}")
+        if data_lines:
+            lines_out.append(f"data: {out_data}")
+
+        event_name = None
+        data_lines = []
+        other_lines = []
+        return ("\n".join(lines_out) + "\n\n").encode("utf-8")
+
+    async for raw_line in upstream_resp.aiter_lines():
+        line = raw_line.rstrip("\r")
+        if line == "":
+            frame = _flush_frame()
+            if frame is not None:
+                yield frame
+            continue
+        if line.startswith("event:"):
+            event_name = line[6:].strip()
+        elif line.startswith("data:"):
+            data_lines.append(line[5:].lstrip(" "))
+        else:
+            other_lines.append(line)
+
+    tail = _flush_frame()
+    if tail is not None:
+        yield tail
 
 
 # ---------------------------------------------------------------- Image Compaction

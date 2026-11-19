@@ -257,3 +257,65 @@ async def test_mistral_openai_compat_split_routing():
         ("GET", "/v1/models"),
     ]
     await mock_client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_native_responses_zcode_input_type_and_reasoning_sse():
+    captured_body: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/v1/responses":
+            captured_body.append(json.loads(request.content))
+            sse = (
+                'event: response.content_part.added\n'
+                'data: {"type":"response.content_part.added","item_id":"rs_1","output_index":0,"content_index":0,"part":{"type":"reasoning_text","text":""}}\n\n'
+                'event: response.reasoning_text.delta\n'
+                'data: {"type":"response.reasoning_text.delta","item_id":"rs_1","output_index":0,"content_index":0,"delta":"thinking..."}\n\n'
+                'event: response.output_text.delta\n'
+                'data: {"type":"response.output_text.delta","item_id":"msg_1","output_index":1,"content_index":0,"delta":"done"}\n\n'
+            ).encode()
+            return httpx.Response(200, content=sse, headers={"content-type": "text/event-stream"})
+        return httpx.Response(404)
+
+    mock_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    cfg = GatewayConfig(
+        upstream_mode="direct_mistral",
+        upstream_base="https://api.mistral.ai",
+        passthrough_auth=False,
+        upstream_api_key="k",
+        rewrite_responses_reasoning=True,
+    )
+    app = create_app(cfg, http_client=mock_client)
+
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://127.0.0.1") as client:
+        r = await client.post(
+            "/v1/responses",
+            json={
+                "model": "mistral-medium-latest",
+                "stream": True,
+                "input": [
+                    {"role": "user", "content": "hi"},
+                    {"role": "assistant", "content": [{"type": "output_text", "text": "hello"}]},
+                ],
+            },
+        )
+        assert r.status_code == 200
+        text = r.text
+        assert "event: response.reasoning_summary_part.added" in text
+        assert "event: response.reasoning_summary_text.delta" in text
+        assert '"summary_index":0' in text
+        assert '"delta":"thinking..."' in text
+        assert "event: response.output_text.delta" in text
+        assert "reasoning_text" not in text
+
+        # Verify upstream received injected "type": "message"
+        assert captured_body[0]["input"][0]["type"] == "message"
+        assert captured_body[0]["input"][1]["type"] == "message"
+
+        # Verify telemetry recorded normalized_chunks and stripped_fields
+        logs = await client.get("/api/admin/logs", headers={"X-MRG-Console": "1"})
+        ev = logs.json()["events"][0]
+        assert ev["normalized_chunks"] == 2
+        assert "input[].type=message" in ev["stripped_fields"]
+
+    await mock_client.aclose()
